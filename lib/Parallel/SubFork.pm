@@ -220,11 +220,11 @@ sub tasks {
 	my $self = shift;
 
 	my $tasks = $self->{tasks};
-	my @tasks = defined $tasks ? @{ $tasks} : ();
-	return @tasks;
+	my @tasks = defined $tasks ? @{ $tasks } : ();
+#	return @tasks;
 	
 	if (defined $tasks) {
-		return wantarray ? @{ $tasks } : scalar @{ $tasks };
+		return wantarray ? @tasks : scalar @tasks;
 	}
 	
 	# NOTE: If there are not tasks yet we must return VOID in list context which

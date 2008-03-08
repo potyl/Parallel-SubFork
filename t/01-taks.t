@@ -33,6 +33,10 @@ sub main {
 	
 		my $tasks = $manager->tasks();
 		is($tasks, 0, "No tasks in scalar context");
+		
+		foreach my $task ($manager->tasks()) {
+			fail("Expected no task but got $task");
+		}
 	}
 	
 	
@@ -47,6 +51,10 @@ sub main {
 	
 		my $tasks = $manager->tasks();
 		is($tasks, 1, "One task in scalar context");
+		
+		foreach my $tmp ($manager->tasks()) {
+			is($tmp, $task, "Looping through tasks")
+		}
 	}
 
 	
