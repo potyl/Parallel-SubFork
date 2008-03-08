@@ -5,9 +5,14 @@ use warnings;
 
 use POSIX qw(WNOHANG);
 
-use Test::More tests => 15;
+use Test::More tests => 16;
 
 BEGIN {
+	
+	# Make sure that we don't count the tests because the count will go wrong
+	# when forking processes
+	Test::More->builder->use_numbers(0);
+	
 	use_ok('Parallel::SubFork');
 }
 
