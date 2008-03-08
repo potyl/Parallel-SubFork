@@ -203,7 +203,7 @@ sub wait_for_all {
 
 	$self->_assert_is_dispatcher();
 
-	foreach my $task (@{ $self->tasks }) {
+	foreach my $task ($self->tasks) {
 		$task->wait_for();
 	}
 }
@@ -221,19 +221,7 @@ sub tasks {
 
 	my $tasks = $self->{tasks};
 	my @tasks = defined $tasks ? @{ $tasks } : ();
-#	return @tasks;
-	
-	if (defined $tasks) {
-		return wantarray ? @tasks : scalar @tasks;
-	}
-	
-	# NOTE: If there are not tasks yet we must return VOID in list context which
-	#       Perl will transform into an empty list. Otherwise, returning $tasks
-	#       will return undef, which in list context is true because it will be
-	#       transformed into a list of one undef element.
-	
-	return if wantarray;
-	return 0;
+	return @tasks;
 }
 
 
