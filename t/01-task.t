@@ -5,7 +5,7 @@ use warnings;
 
 use POSIX qw(WNOHANG);
 
-use Test::More tests => 16;
+use Test::More tests => 17;
 
 BEGIN {
 	
@@ -75,6 +75,11 @@ sub main {
 	is($task->exit_code, 0, "Task exit code is fine");
 	is($task->status, 0, "Task status is fine");
 
+	is_deeply(
+		[ $task->args ], 
+		[ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ], 
+		"Task args are intact"
+	);
 
 	# Wait some more, is useless but it should work
 	$task->wait_for();
@@ -87,10 +92,6 @@ sub main {
 		my $kid = waitpid(-1, WNOHANG);
 		is($kid, -1, "No more processes");
 	}
-	
-	printf "Task status: %s\n", $task->status;
-	printf "Task exit: %s\n", $task->exit_code;
-	printf "Task args: %s\n", join (", ", $task->args);
 	
 	return 0;
 }
