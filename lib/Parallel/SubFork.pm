@@ -7,17 +7,17 @@ Parallel::SubFork - Run perl functions in forked processes.
 =head1 SYNOPSIS
 
 	use Parallel::SubFork;
-	my $tasks = Parallel::SubFork->new();
+	my $manager = Parallel::SubFork->new();
 	
 	# Start two pararallel tasks
-	$tasks->start(sub { sleep 10; print "Done\n" });
-	$tasks->start(\&callback, @args);
+	$manager->start(sub { sleep 10; print "Done\n" });
+	$manager->start(\&callback, @args);
 	
 	# Wait for all tasks to resume
-	$tasks->wait_for_all();
+	$manager->wait_for_all();
 	
 	# Loop through all tasks
-	foreach my $task ($tasks->tasks) {
+	foreach my $task ($manager->tasks) {
 		# Access any of the properties
 		printf "Task with PID %d resumed\n", $task->pid;
 		printf "Exist status: %d, exit code: %d\\n", $task->status, $task->exit;
@@ -27,10 +27,28 @@ Parallel::SubFork - Run perl functions in forked processes.
 
 =head1 DESCRIPTION
 
-This module provides a simple wrapper the system calls C<fork> and C<wait> that
-can be used to execute some tasks in parallel. The idea is to isolate the tasks
-to be excecute in functions or closures and to perform this tasks in a separated
-process.
+This module provides a simple wrapper over the system calls C<fork> and C<wait>
+that can be used to execute some tasks in parallel. The idea is to isolate the
+tasks to be excecute in functions or closures and to perform this tasks in a
+separated process.
+
+=head1 TASKS
+
+A task is simply a Perl function or a closure that will get executed in a
+different process. This module will take care of creating and managing the new
+processes. All that's left is to code the logic of each task and to provide the
+proper IPC mechanism if needed.
+
+A task will run in it's own process thus it's important to understand that all
+modifications to variables within the tasks even global variables will have no
+impact on the parent processs. Communication or data exchange between the task 
+and the dispatcher (the code that started the task) has to be performed through
+standard IPC mechanisms. For futher details on how to establish different
+communication channels referer to the documentation of L<perlipc>.
+
+Since a task is running within a process it's expected that the task will return
+an exit code and not a true value in the I<Perl> sense. The return value will be
+used as the exit code of the process that's running the task.
 
 =head1 METHODS
 
