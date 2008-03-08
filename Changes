@@ -1,0 +1,6 @@
+Revision history for Perl extension Parallel::SubFork.
+
+0.01  Sat Mar  8 09:13:14 2008
+	- original version; created by h2xs 1.23 with options
+		-XA -n Parallel::SubFork
+

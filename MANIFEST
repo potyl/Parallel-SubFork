@@ -1,0 +1,6 @@
+Changes
+Makefile.PL
+MANIFEST
+README
+t/Parallel-SubFork.t
+lib/Parallel/SubFork.pm
