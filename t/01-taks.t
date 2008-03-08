@@ -5,18 +5,18 @@ use warnings;
 
 use POSIX qw(WNOHANG);
 
-use Test::More tests => 13;
+use Test::More tests => 15;
 
 BEGIN {
 	use_ok('Parallel::SubFork');
 }
 
+my $PID = $$;
+
 exit main();
 
 
 sub main {
-	
-	my $PID = $$;
 	
 	# Create a new task
 	my $manager = Parallel::SubFork->new();
@@ -37,13 +37,7 @@ sub main {
 	
 	
 	# Start a sub task
-	my $task = $manager->start(
-		sub {
-			sleep 2;
-			ok($$ != $PID, "Task is running in a child process $$ != $PID");
-			return 0;
-		}
-	);
+	my $task = $manager->start(\&task, 1 .. 10);
 	isa_ok($task, 'Parallel::SubFork::Task');
 	
 	# Assert that there's a task
@@ -65,12 +59,14 @@ sub main {
 	
 	# Wait for the task to resume
 	$task->wait_for();
-	is($task->exit_code, 0, "Task returned successfully");
+	is($task->exit_code, 0, "Task exit code is fine");
+	is($task->status, 0, "Task status is fine");
 
 
 	# Wait some more, is useless but it should work
 	$task->wait_for();
-	is($task->exit_code, 0, "Second wait on the same task");
+	is($task->exit_code, 0, "Second wait on the same task, exit code fine");
+	is($task->status, 0, "Second wait on the same task, status fine");
 	
 
 	# Make sure that there are no other tasks
@@ -82,6 +78,19 @@ sub main {
 	printf "Task status: %s\n", $task->status;
 	printf "Task exit: %s\n", $task->exit_code;
 	printf "Task args: %s\n", join (", ", $task->args);
+	
+	return 0;
+}
+
+
+sub task {
+	my (@args) = @_;
+	sleep 2;
+	ok($$ != $PID, "Task is running in a child process $$ != $PID");
+	
+	my @wanted = qw(1 2 3 4 5 6 7 8 9 10);
+	
+	is_deeply(\@args, \@wanted, "Task argument passed successfully");
 	
 	return 0;
 }
