@@ -72,8 +72,8 @@ sub main {
 	
 	# Wait for the task to resume
 	$task->wait_for();
-	is($task->exit_code, 0, "Task exit code is fine");
-	is($task->status, 0, "Task status is fine");
+	is($task->exit_code, 57, "Task exit code is fine");
+	is($task->status, 57 << 8, "Task status is fine");
 
 	is_deeply(
 		[ $task->args ], 
@@ -83,8 +83,8 @@ sub main {
 
 	# Wait some more, is useless but it should work
 	$task->wait_for();
-	is($task->exit_code, 0, "Second wait on the same task, exit code fine");
-	is($task->status, 0, "Second wait on the same task, status fine");
+	is($task->exit_code, 57, "Second wait on the same task, exit code fine");
+	is($task->status, 57 << 8, "Second wait on the same task, status fine");
 	
 
 	# Make sure that there are no other tasks
@@ -100,11 +100,14 @@ sub main {
 sub task {
 	my (@args) = @_;
 	sleep 2;
-	ok($$ != $PID, "Task is running in a child process $$ != $PID");
+	my $return = 57;
+
+	++$return unless $$ != $PID;
 	
 	my @wanted = qw(1 2 3 4 5 6 7 8 9 10);
 	
-	is_deeply(\@args, \@wanted, "Task argument passed successfully");
+	++$return unless eq_array(\@args, \@wanted);
+#	is_deeply(\@args, \@wanted, "Task argument passed successfully");
 	
-	return 0;
+	return $return;
 }

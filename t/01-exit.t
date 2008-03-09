@@ -41,16 +41,19 @@ sub main {
 
 sub task_exit {
 	sleep 2;
-	ok($$ != $PID, "Task is running in a child process $$ != $PID");
-	pass("Child process forked. Going to exit");
-	_exit(42);
-	fail("Failed to exit");
+	my $return = 42;
+	
+	++$return unless $$ != $PID;
+	_exit($return);
+	
+	return ++$return;
 }
 
 
 sub task_exec {
 	sleep 3;
-	ok($$ == $PID, "Task is running in a child process $$ != $PID");
-	pass("Child process forked. Executing exec");
-	exec('perl', '-le', 'exit(12);');
+	my $return = 12;
+
+	++$return unless $$ != $PID;
+	exec('perl', '-le', "exit($return);") or _exit(++$return);
 }
