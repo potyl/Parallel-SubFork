@@ -104,10 +104,10 @@ sub test_task_run {
 
 
 sub task {
+	local $SIG{HUP} = sub {return;};
 	my (@args) = @_;
 	my $return = 57;
 	
-	local $SIG{HUP} = sub {return;};
 	
 	# This paused is needed because we will actually test that the process is
 	# running
