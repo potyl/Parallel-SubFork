@@ -35,7 +35,6 @@ sub main {
 
 
 sub task_exit {
-	sleep 2;
 	my $return = 42;
 	
 	++$return unless $$ != $PID;
@@ -46,7 +45,6 @@ sub task_exit {
 
 
 sub task_exec {
-	sleep 3;
 	my $return = 12;
 
 	++$return unless $$ != $PID;
