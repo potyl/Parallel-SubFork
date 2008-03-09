@@ -2,76 +2,107 @@ package Parallel::SubFork::Task;
 
 =head1 NAME
 
-Parallel::SubFork::Task - Run perl functions in forked processes. 
+Parallel::SubFork::Task - Run Perl functions in forked processes. 
 
 =head1 SYNOPSIS
 
 	use Parallel::SubFork::Task;
-
-	# Create and execute the task
-	my $task = Parallel::SubFork::Task->new(\&job, @args);
-	$task->execute();
-
-	# Do the same in one step
-	my $task2 = Parallel::SubFork::Task->start(\&job, @args);
 	
-	## From the main process, the one that actually started the tasks
-	# Wait for the tasks to resume 
+	# Run a some arbitrary Perl code in a separated process
+	my $task = Parallel::SubFork::Task->start(\&job, @args);
 	$task->wait_for();
+	
+	# Create and execute the task (same as above)
+	my $task2 = Parallel::SubFork::Task->new(\&job, @args);
+	$task2->execute();
 	$task2->wait_for();
 	
-
 	# Access any of the properties
 	printf "PID of task was %s\n", $task->pid;
-	printf "Args of task where %s\n", join ", ", $task->args;
+	printf "Args of task where %s\n", join(", ", $task->args);
+	printf "Exit code: %d\n", $task->exit_code;
 
 =head1 DESCRIPTION
 
-This module represents a task, a code reference (a subroutine or a closure) that
-will be executed with some predefined arguments.
+This module provides a simpler way to run arbitrary perl code in a different
+process. This module consists of a fancy wrapper over the system calls L<fork>
+and L<waitpid>. The idea is to execute any standard perl function in a different
+process without any of the inconveniences of managing the forks by hand.
 
-A tasks consists of a reference to a subroutine and it's arguments that will be invoked
-by a forked child. The task will also store some runtinme properties such as the PID,
-exit code and so on. This properties can then be inspected by the parent process.
+=head1 TASK
 
-This class is just a simple wrapper over the properties defined in a task:
+This module is used to encapsulate a task, i.e. the function to be executed in
+a different process and it's arguments. In a nutshell a task consists of a
+reference to a Perl function (C<\&my_sub>) or a closure (C<sub { 1; }>), 
+also known as an anonymous subroutine, and optionally the arguments to provide
+to that function.
 
-=over
+A task also stores some runtime properties such as the PID of the process that 
+executed the code, the exit code and the exit status of the process. These
+properties can then be inspected by the parent process through their dedicated
+accessors.
 
-=item code
+There's also some helper methods that are used to create the child process and
+to wait for it to resume.
 
-A reference to a subroutine, this is the main code that's bein executed in a
-different process.
+=head1 PROCESSES
 
-=item args
+Keep in mind that the function being executed is run in a different process.
+This means that any modification performed within that function will only affect
+the process running the task. This is true even for global variables. All data
+exchange or communication between the parent the child process has to be
+implemented manually through standard <inter process communication> (IPC)
+mechanisms (see L<perlipc>).
 
-The arguments that will be given to the subroutine being executed in a separated
-process. The subroutine will receive the arguments through C<@_>.
+The child process used to executes the Perl subroutines has it's environment
+left unchanged. This means that all file descriptors, signal handlers and other
+resources are still available. It's up to the subroutine to prepare it self a
+proper environment.
 
-=item pid
+=head1 RETURN VALUES
 
-The PID of the process executing the subroutine, the child's PID.
+The subroutine return's value will be used as the process exit code, this is the
+only thing that the invoking process will be able to get back from the task
+without any kind of IPC. This means that the return value should be an integer.
+Furthermore, since the return value is used as an exit value in this case C<0>
+is considered as successful execution while any other value is usually
+interpreted as an error.
 
-=item exit_code
+=head1 EXIT
 
-The exit code of the task, this is the value returned by C<exit>, C<_exit> or
-C<return>.
+The subroutine is free to raise any exceptions through L<die> or any similar
+mechanism. If an error is caught by the framework it will be interpreted as an
+error and an appropriate exit value will be used.
 
-=item status
+If the subroutine needs to resume it's execution through a the system call
+L<exit> then consider instead using C<_exit> as defined in the module L<POSIX>.
+This is because L<exit> not only terminates the current process but it performs
+some cleanup such as calling the functions registered with C<atexit> and flush
+all stdio streams before finishing the process. Normally, only the main process
+should call L<exit>, in the case of a fork the children should finish their execution through C<POSIX::_exit>.
 
-The exit code returned to the parent process as described by C<wait>.
+=head1 PROCESS WAIT
 
-=back
+Waiting for process to finish can be problematic. There are multiple ways for waiting for processes to resume. Each having it's advantages and disadvantages.
+
+The easiest way is to register a signal handler for C<CHLD> signal. This has the
+advantage of receiving the child notifications as they happen, the disadvantage
+is that there's no way to control for which children the notifications will
+happen. This is quite inconvenient because a lot of the nice built-in functions
+and operators in Perl such as C<`ls`>, L<system> and even L<open> (when used in
+conjunction with a C<|>) use child processes for their tasks and this could
+potentially interfere with such utilities.
+
+Another alternative is to wait for all processes launched but this can also
+interfere with other processed launched manually through L<fork>.
+
+Finally, the safest way is to wait explicitly B<only> for the processes that we
+know to have started and nothing else. This there will be no interference with
+the other processes. This is exactly the approach used by this module.
 
 =head1 METHODS
 
-This module defines the following methods:
-
-=head2 new
-
-Creates a new instance with the given arguments.
-Expects as arguments an hash of the key/value pairs 
-to affect to the new object.
+A task defines the following methods:
 
 =cut
 
@@ -113,7 +144,8 @@ In order to manage tasks easily consider using use the module
 L<Parallel::SubFork> instead.
 
 Parameters:
-	$code: the code reference to execute.
+
+	$code: the code reference to execute in a different process.
 	@args: the arguments to pass to the code reference (optional).
 
 =cut
@@ -132,13 +164,16 @@ sub start {
 
 =head2 new
 
-Creates a new task, this is simply a constructor. The task it not started yet.
-The task is only started through a call to L<execute>.
+Creates a new task, this is simply a constructor and the task will not be
+started yet.
+
+The task can latter by started through a call to L</"execute">.
 
 In order to manage tasks easily consider using use the module
 L<Parallel::SubFork> instead.
 
 Parameters:
+
 	$code: the code reference to execute.
 	@args: the arguments to pass to the code reference (optional).
 
@@ -157,12 +192,38 @@ sub new {
 	return $self;
 }
 
+=head2 code
+
+Accessor to the function (code reference) that will be executed in a different
+process. This is what the child process will execute. 
+
+This function is expected to return C<0> for success and any other integer to
+indicate a failure. The function is free to raise any kind of exception as the
+framework will catch all exceptions and return an error value instead.
+
+The function will receive it's parameters normally through the variable C<@_>.
+
+=head2 pid
+
+The PID of the process executing the subroutine, the child's PID.
+
+=head2 exit_code
+
+The exit code of the task, this is the value returned by L<exit>, 
+C<POSIX::_exit> or C<return>.
+
+=head2 status
+
+The exit code returned to the parent process as described by C<wait>. The status
+code can be inspected through the L<"POSIX/WAIT"> macros .
 
 
 =head2 args
 
-Returns the arguments that will be passed to the task when the main code will be
-invoked. The arguments are returned as a list and not an array ref.
+The arguments that will be given to the subroutine being executed in a separated
+process. The subroutine will receive this very same arguments through C<@_>.
+
+This method always return it's values as a list and not as an array ref.
 
 =cut
 
@@ -177,13 +238,17 @@ sub args {
 
 =head2 execute
 
-Executes the tasks (the code reference encapsulated by this task.) in a new
+Executes the tasks (the code reference encapsulated by this task) in a new
 process. The code reference will be invoked with the arguments passed in the
 constructor.
 
-This method performs the actual fork and returns automatically for the invoker.
-For the child process this is as far the the code will go. The invoker should
-call L</wait_for> in order to wait for the child process to finish.
+This method performs the actual fork and returns automatically for the invoker,
+while the child process will start to execute the code in defined in the code
+reference. Once the subroutine has finished the child process will resume right
+away.
+
+The invoker (the parent process) should call L</wait_for> in order to wait for
+the child process to finish and obtain it's exit value.
 
 =cut
 
@@ -236,11 +301,11 @@ sub execute {
 
 =head2 wait_for
 
-Waits until the process that started this task has finished.
+Waits until the process running the task (the code reference) has finished.
 
-The exit status, that is the value passed to the C<exit> system call can be
-inspected through the accessor L</exit_code> and the actual status, the value
-returned in C<$?> by C<waitpid> can be accessed through the accessor L</status>.
+The exit status of the process can be inspected through the accessor 
+L</"exit_code"> and the actual status, the value returned in C<$?> by L<waitpid>
+can be accessed through the accessor L</"status">.
 
 =cut
 
