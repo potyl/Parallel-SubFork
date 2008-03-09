@@ -2,26 +2,24 @@ package Parallel::SubFork::Task;
 
 =head1 NAME
 
-Parallel::SubFork::Task - Representation of a Task (a subprocess).
+Parallel::SubFork::Task - Run perl functions in forked processes. 
 
 =head1 SYNOPSIS
 
 	use Parallel::SubFork::Task;
-	my $task = Parallel::SubFork::Task->new(
-		{
-			code => sub { print "A new process $$: @_"; },
-			args => ['one', 'two'],
-		}
-	);
 
-	## From another process (fork)
-	# Execute the task
+	# Create and execute the task
+	my $task = Parallel::SubFork::Task->new(\&job, @args);
 	$task->execute();
+
+	# Do the same in one step
+	my $task2 = Parallel::SubFork::Task->start(\&job, @args);
 	
-	
-	## From the main process
+	## From the main process, the one that actually started the tasks
 	# Wait for the tasks to resume 
-	$task->wait();
+	$task->wait_for();
+	$task2->wait_for();
+	
 
 	# Access any of the properties
 	printf "PID of task was %s\n", $task->pid;
@@ -42,19 +40,21 @@ This class is just a simple wrapper over the properties defined in a task:
 
 =item code
 
-A reference to a subroutine, this is the main code that's bein executed.
+A reference to a subroutine, this is the main code that's bein executed in a
+different process.
 
 =item args
 
-The arguments that will be given to the subroutine through C<@_>.
+The arguments that will be given to the subroutine being executed in a separated
+process. The subroutine will receive the arguments through C<@_>.
 
 =item pid
 
-The PID of the process executing the subroutine, the child PID.
+The PID of the process executing the subroutine, the child's PID.
 
 =item exit_code
 
-The exit code of the task, this is the value returned by C<exit> or C<_exit> or
+The exit code of the task, this is the value returned by C<exit>, C<_exit> or
 C<return>.
 
 =item status
@@ -83,14 +83,13 @@ use POSIX qw(
 	WIFEXITED
 	WEXITSTATUS
 	WIFSIGNALED
-	getppid
 	_exit
 );
 
 use Carp;
 
 use base qw(Class::Accessor::Fast);
-__PACKAGE__->mk_accessors(
+__PACKAGE__->mk_ro_accessors(
 	qw(
 		_ppid
 		pid
@@ -99,6 +98,7 @@ __PACKAGE__->mk_accessors(
 		status
 	)
 );
+
 
 # Version of the module
 our $VERSION = '0.01';
@@ -152,10 +152,7 @@ sub new {
 	# Create a blessed instance
 	my $self = bless {}, ref($class) || $class;
 	$self->code($code);
-	$self->args(@args);
-	
-	# The current process ID will be the parent
-	$self->_ppid($$);
+	$self->{args} = \@args;
 	
 	return $self;
 }
@@ -165,24 +162,16 @@ sub new {
 =head2 args
 
 Returns the arguments that will be passed to the task when the main code will be
-invoked. The arguments are returned as a list and not an array ref. If there are
-no arguments nothing will be returned.
+invoked. The arguments are returned as a list and not an array ref.
 
 =cut
 
 sub args {
 	my $self = shift;
 	
-	# Save the arguments if there are present
-	$self->{args} = \@_ if @_;
-	
-	# NOTE: If the arguments are not yet set we must return VOID which 
-	#       Perl will transform into an empty list. Otherwise, returning
-	#       $self->{args}  will return undef, which in list context is true
-	#       because it will be transformed into a list of one undef element.
-	return unless defined $self->{args};
-	
-	return @{ $self->{args} };
+	my $args = $self->{args};
+	my @args = defined $args ? @{ $args } : ();
+	return @args;
 }
 
 
@@ -193,14 +182,15 @@ process. The code reference will be invoked with the arguments passed in the
 constructor.
 
 This method performs the actual fork and returns automatically for the invoker.
-For the child process this is as far the the code will go.
+For the child process this is as far the the code will go. The invoker should
+call L</wait_for> in order to wait for the child process to finish.
 
 =cut
 
 sub execute {
 	my $self = shift;
 
-	$self->_ppid($$);
+	my $ppid = $$;
 
 	# Fork a child
 	my $pid = fork();
@@ -209,7 +199,9 @@ sub execute {
 	if (! defined $pid) {
 		croak "Can't fork because: $!";
 	}
-	elsif ($pid == 0) {
+	
+	$self->_ppid($ppid);
+	if ($pid == 0) {
 		## CHILD part
 
 		# Execute the main code
@@ -233,9 +225,11 @@ sub execute {
 
 =head2 wait_for
 
-Waits until the process that started this task has finished. This method returns
-the exit status, that is the value passed to the C<exit> system call and not the
-value returned in C<$?> by C<waitpid>.
+Waits until the process that started this task has finished.
+
+The exit status, that is the value passed to the C<exit> system call can be
+inspected through the accessor L</exit_code> and the actual status, the value
+returned in C<$?> by C<waitpid> can be accessed through the accessor L</status>.
 
 =cut
 
@@ -255,7 +249,7 @@ sub wait_for {
 	
 	# Check if the task was already waited for
 	if (defined $self->status) {
-		return $self->exit_code;
+		return;
 	}
 	
 	while (1) {
@@ -284,17 +278,17 @@ sub wait_for {
 		if (WIFEXITED($status)) {
 			$self->status($status);
 			$self->exit_code(WEXITSTATUS($status));
-			last;
+			return;
 		}
 		elsif (WIFSIGNALED($status)) {
 			$self->status($status);
 			# WEXITSTATUS is only defined for WIFEXITED, here we assume an error
 			$self->exit_code(1);
-			last;
+			return;
 		}
 	}
 	
-	return $self->exit_code;
+	return;
 }
 
 
