@@ -11,3 +11,4 @@ t/01-task.t
 t/01-wrong-usage.t
 lib/Parallel/SubFork.pm
 lib/Parallel/SubFork/Task.pm
+examples/simple.pl
