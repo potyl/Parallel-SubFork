@@ -134,7 +134,13 @@ sub start {
 
 
 	# Start the task and remember it
-	my $task = Parallel::SubFork::Task->start($code, @args);
+	my $task;
+	eval {
+		$task = Parallel::SubFork::Task->start($code, @args);
+	};
+	if (my $error = $@) {
+		croak $error;
+	}
 	push @{ $self->{tasks} }, $task;
 	
 	return $task;
