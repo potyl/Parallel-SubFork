@@ -89,7 +89,7 @@ use POSIX qw(
 use Carp;
 
 use base qw(Class::Accessor::Fast);
-__PACKAGE__->mk_ro_accessors(
+__PACKAGE__->mk_accessors(
 	qw(
 		_ppid
 		pid
@@ -190,6 +190,17 @@ call L</wait_for> in order to wait for the child process to finish.
 sub execute {
 	my $self = shift;
 
+	# Check that we don't run twice the same task
+	if (defined $self->pid) {
+		croak "Task already exectuted";
+	}
+	
+	# Make sure that there's a code reference
+	my $code = $self->code;
+	if (! (defined $code and ref $code eq 'CODE')) {
+		croak "Task requires a valid code reference (function)";
+	}
+
 	my $ppid = $$;
 
 	# Fork a child
@@ -207,7 +218,7 @@ sub execute {
 		# Execute the main code
 		my $return = 1;
 		eval {
-			$return = $self->code->($self->args);
+			$return = $code->($self->args);
 		};
 		if (my $error = $@) {
 			carp "Child executed with errors: ", $error;
