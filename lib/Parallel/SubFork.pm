@@ -2,7 +2,7 @@ package Parallel::SubFork;
 
 =head1 NAME
 
-Parallel::SubFork - Run perl functions in forked processes. 
+Parallel::SubFork - Manage perl functions in forked processes. 
 
 =head1 SYNOPSIS
 
