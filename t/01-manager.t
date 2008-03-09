@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use POSIX qw(WNOHANG);
+use POSIX qw(WNOHANG pause);
 
 use Test::More tests => 17;
 
@@ -64,6 +64,8 @@ sub main {
 		my $kid = waitpid($task->pid, WNOHANG);
 		is($kid, 0, "Child process still running");
 	}
+	# Wake up the task
+	kill HUP => $task->pid;
 	
 	# Wait for the task to resume
 	$task->wait_for();
@@ -93,16 +95,19 @@ sub main {
 
 
 sub task {
+	local $SIG{HUP} = sub {return;};
 	my (@args) = @_;
-	sleep 2;
 	my $return = 57;
+	
+	
+	# This paused is needed because we will actually test that the process is
+	# running
+	pause();
 
 	++$return unless $$ != $PID;
 	
 	my @wanted = qw(1 2 3 4 5 6 7 8 9 10);
-	
 	++$return unless eq_array(\@args, \@wanted);
-#	is_deeply(\@args, \@wanted, "Task argument passed successfully");
 	
 	return $return;
 }
