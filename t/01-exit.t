@@ -8,11 +8,6 @@ use POSIX qw(_exit);
 use Test::More tests => 4;
 
 BEGIN {
-
-	# Make sure that we don't count the tests because the count will go wrong
-	# when forking processes
-	Test::More->builder->use_numbers(0);
-
 	use_ok('Parallel::SubFork');
 }
 
