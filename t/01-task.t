@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use POSIX qw(WNOHANG);
+use POSIX qw(WNOHANG pause);
 
 use Test::More tests => 26;
 
@@ -18,15 +18,16 @@ exit main();
 
 sub main {
 	
-	test_task();	
+	test_task_creation();	
 	
+	# Start a tastk through new(), execute()
 	{
 		my $task = Parallel::SubFork::Task->new(\&task, 1 .. 10);
 		$task->execute();
 		test_task_run($task);
 	}
 
-
+	# Start a tastk through start()
 	{
 		my $task = Parallel::SubFork::Task->start(\&task, 1 .. 10);
 		test_task_run($task);
@@ -36,7 +37,8 @@ sub main {
 }
 
 
-sub test_task {
+
+sub test_task_creation {
 	# Create a new task
 	my $task = Parallel::SubFork::Task->new(\&task, 1 .. 10);
 	isa_ok($task, 'Parallel::SubFork::Task');
@@ -73,6 +75,8 @@ sub test_task_run {
 		my $kid = waitpid($task->pid, WNOHANG);
 		is($kid, 0, "Child process still running");
 	}
+	# The task is expected to be in pause, so let's wake it up
+	kill HUP => $task->pid;
 	
 	# Wait for the task to resume
 	$task->wait_for();
@@ -102,6 +106,12 @@ sub test_task_run {
 sub task {
 	my (@args) = @_;
 	my $return = 57;
+	
+	local $SIG{HUP} = sub {return;};
+	
+	# This paused is needed because we will actually test that the process is
+	# running
+	pause();
 
 	++$return unless $$ != $PID;
 	
