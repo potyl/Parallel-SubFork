@@ -5,7 +5,7 @@ use warnings;
 
 use POSIX qw(WNOHANG);
 
-use Test::More tests => 67;
+use Test::More tests => 79;
 
 BEGIN {
 	use_ok('Parallel::SubFork');
@@ -38,6 +38,16 @@ sub main {
 	is($task_start->exit_code, 61, "Child process can't call start()");
 	is($TASK->exit_code, 42, "Generic task");
 	is($task_wait_for->exit_code, 23, "Child process can't call start()");
+	
+	
+	# Check that we can't reexecute the tasks
+	foreach my $task ($task_wait_for_all, $task_start, $TASK, $task_wait_for) {
+		assert_exception(
+			qr/^Task already exectuted/,
+			sub { $task->execute(); }
+		);
+	}
+	
 	
 	
 	##
