@@ -5,10 +5,11 @@ use warnings;
 
 use POSIX qw(WNOHANG);
 
-use Test::More tests => 6;
+use Test::More tests => 16;
 
 BEGIN {
 	use_ok('Parallel::SubFork');
+	use_ok('Parallel::SubFork::Task');
 }
 
 my $PID = $$;
@@ -38,7 +39,42 @@ sub main {
 	is($TASK->exit_code, 42, "Generic task");
 	is($task_wait_for->exit_code, 23, "Child process can't call start()");
 	
+	
+	##
+	# Make sure that an argument has to be passed
+	assert_exception(
+		qr/^First parameter must be a code reference/,
+		sub { $MANAGER->start(); }
+	);
+	
+	assert_exception(
+		qr/^First parameter must be a code reference/,
+		sub { Parallel::SubFork::Task->new(); }
+	);
+	
+	assert_exception(
+		qr/^First parameter must be a code reference/,
+		sub { Parallel::SubFork::Task->start(); }
+	);
+	
 	return 0;
+}
+
+
+sub assert_exception {
+	my ($regexp, $code) = @_;
+	is(ref $regexp, 'Regexp', "Expecting a regexp as assert_exception 1st argument");
+	is(ref $code, 'CODE', "Expecting a code ref as assert_exception 2nd argument");
+
+	eval {
+		$code->();
+	};
+	if (my $error = $@) {
+		ok($error =~ /$regexp/, "Code raised an exception");
+		return;
+	}
+	
+	fail("Expected to raise an exception");
 }
 
 
