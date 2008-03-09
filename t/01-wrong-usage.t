@@ -5,7 +5,7 @@ use warnings;
 
 use POSIX qw(WNOHANG);
 
-use Test::More tests => 16;
+use Test::More tests => 67;
 
 BEGIN {
 	use_ok('Parallel::SubFork');
@@ -31,7 +31,7 @@ sub main {
 	$TASK = $MANAGER->start(sub {return 42;});
 	my $task_wait_for = $MANAGER->start(\&task_wait_for);
 
-	# Wait for the task to resume
+	# Wait for the tasks to resume
 	$MANAGER->wait_for_all();
 	
 	is($task_wait_for_all->exit_code, 75, "Child process can't call wait_for_all()");
@@ -41,22 +41,43 @@ sub main {
 	
 	
 	##
-	# Make sure that an argument has to be passed
-	assert_exception(
-		qr/^First parameter must be a code reference/,
-		sub { $MANAGER->start(); }
-	);
+	# Check the methods expecting a mandatory code ref enforce it
+	my $regexp_param_code_ref = qr/^First parameter must be a code reference/;
 	
-	assert_exception(
-		qr/^First parameter must be a code reference/,
-		sub { Parallel::SubFork::Task->new(); }
+	my @all_args = (
+		[],
+		['text'],
+		[1],
+		[ ['array'] ],
+		[ { an => 'hash' } ],
 	);
-	
-	assert_exception(
-		qr/^First parameter must be a code reference/,
-		sub { Parallel::SubFork::Task->start(); }
-	);
-	
+	foreach my $args (@all_args) {
+		my @args = @{ $args };
+
+		assert_exception(
+			$regexp_param_code_ref,
+			sub { $MANAGER->start(@args); }
+		);
+
+		assert_exception(
+			$regexp_param_code_ref,
+			sub { Parallel::SubFork::Task->new(@args); }
+		);
+
+		assert_exception(
+			$regexp_param_code_ref,
+			sub { Parallel::SubFork::Task->start(@args); }
+		);
+
+		# Start a task that has no code reference
+		my $task_bad_code = Parallel::SubFork::Task->new(sub {});
+		$task_bad_code->code(undef);
+		assert_exception(
+			qr/^\QTask requires a valid code reference (function)\E/,
+			sub { $task_bad_code->execute(); }
+		);
+	}
+
 	return 0;
 }
 
