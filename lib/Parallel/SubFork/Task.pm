@@ -51,7 +51,7 @@ Keep in mind that the function being executed is run in a different process.
 This means that any modification performed within that function will only affect
 the process running the task. This is true even for global variables. All data
 exchange or communication between the parent the child process has to be
-implemented manually through standard <inter process communication> (IPC)
+implemented manually through standard I<inter process communication> (IPC)
 mechanisms (see L<perlipc>).
 
 The child process used to executes the Perl subroutines has it's environment

@@ -2,14 +2,14 @@ package Parallel::SubFork;
 
 =head1 NAME
 
-Parallel::SubFork - Manage perl functions in forked processes. 
+Parallel::SubFork - Manage Perl functions in forked processes. 
 
 =head1 SYNOPSIS
 
 	use Parallel::SubFork;
 	my $manager = Parallel::SubFork->new();
 	
-	# Start two pararallel tasks
+	# Start two parallel tasks
 	$manager->start(sub { sleep 10; print "Done\n" });
 	$manager->start(\&callback, @args);
 	
@@ -20,35 +20,37 @@ Parallel::SubFork - Manage perl functions in forked processes.
 	foreach my $task ($manager->tasks) {
 		# Access any of the properties
 		printf "Task with PID %d resumed\n", $task->pid;
-		printf "Exist status: %d, exit code: %d\\n", $task->status, $task->exit;
+		printf "Exist status: %d, exit code: %d\\n", $task->status, $task->exit_code;
 		printf "Args of task where: %s\n", join(', ', $task->args);
 		print "\n";
 	}
 
 =head1 DESCRIPTION
 
-This module provides a simple wrapper over the system calls C<fork> and C<wait>
-that can be used to execute some tasks in parallel. The idea is to isolate the
-tasks to be excecute in functions or closures and to perform this tasks in a
-separated process.
+This module provides a simple wrapper over the module L<Parallel::SubFork::Task>
+which in turns simplifies the usage of the system calls L<fork> and L<waitpid>.
+The idea is to isolate the tasks to be execute in functions or closures and to
+execute them in a separated process in order to take advantage of
+parallelization.
 
 =head1 TASKS
 
 A task is simply a Perl function or a closure that will get executed in a
 different process. This module will take care of creating and managing the new
 processes. All that's left is to code the logic of each task and to provide the
-proper IPC mechanism if needed.
+proper I<inter process communication> (IPC) mechanism if needed.
 
 A task will run in it's own process thus it's important to understand that all
-modifications to variables within the tasks even global variables will have no
-impact on the parent processs. Communication or data exchange between the task 
+modifications to variables within the function, even global variables, will have
+no impact on the parent process. Communication or data exchange between the task
 and the dispatcher (the code that started the task) has to be performed through
-standard IPC mechanisms. For futher details on how to establish different
-communication channels referer to the documentation of L<perlipc>.
+standard IPC mechanisms. For further details on how to establish different
+communication channels refer to the documentation of L<perlipc>.
 
 Since a task is running within a process it's expected that the task will return
-an exit code and not a true value in the I<Perl> sense. The return value will be
-used as the exit code of the process that's running the task.
+an exit code (C<0> for an execution without flaws and any other integer for
+reporting an error) and not a true value in the I<Perl> sense. The return value
+will be used as the exit code of the process that's running the task.
 
 =head1 METHODS
 
@@ -102,24 +104,27 @@ sub new {
 
 =head2 start
 
-Starts the execution of a new task in a different process. A taks consists of a
-code reference (a closure or a reference to a subroutine) and of a arguments
+Starts the execution of a new task in a different process. A task consists of a
+code reference (a closure or a reference to a subroutine) and of an arguments
 list.
 
 This method will actually fork a new process and execute the given code
-reference in the child process. For the parent processs this method will return
+reference in the child process. For the parent process this method will return
 automatically. The child process will start executing the code reference with
 the given arguments.
 
 The parent process, the one that started the task should wait for the child
-process to resume. The child process can only 
+process to resume. This can be performed individually on each tasks through the
+method L<"Parallel::SubFork::Task/wait_for"> or for all tasks launched through
+this instance through the method L<"wait_for_all">
 
+B<NOTE:> This method requires that the caller process is the same process as the
+one that created the instance object being called.
 
-This doesn't mean that the child process is over, instead the 
+Parameters:
 
-
-For the parent process this method is non blocking and will return automatically.
-For the new child this is as far as the code goes
+	$code: the code reference to execute in a different process.
+	@args: the arguments to pass to the code reference (optional).
 
 =cut
 
@@ -149,24 +154,11 @@ sub start {
 
 =head2 wait_for_all
 
-Starts the execution of a new task in a different process. A taks consists of a
-code reference (a closure or a reference to a subroutine) and of a arguments
-list.
+This method waits for all tasks started so far and returns when they all have
+resumed. This is useful for creating a rally point for multiple tasks.
 
-This method will actually fork a new process and execute the given code
-reference in the child process. For the parent processs this method will return
-automatically. The child process will start executing the code reference with
-the given arguments.
-
-The parent process, the one that started the task should wait for the child
-process to resume. The child process can only 
-
-
-This doesn't mean that the child process is over, instead the 
-
-
-For the parent process this method is non blocking and will return automatically.
-For the new child this is as far as the code goes
+B<NOTE:> This method requires that the caller process is the same process as the
+one that created the instance object being called.
 
 =cut
 
@@ -223,16 +215,13 @@ sub _assert_is_dispatcher {
 1;
 
 
+=head1 NOTES
+
+The API is not yet frozen and could change as the module goes public.
+
 =head1 SEE ALSO
 
-Mention other useful documentation such as the documentation of
-related modules or operating system documentation (such as man pages
-in UNIX), or any relevant external documentation such as RFCs or
-standards.
-
-If you have a mailing list set up for your module, mention it here.
-
-If you have a web site set up for your module, mention it here.
+Take a look at L<POE> for asynchronous multitasking and networking.
 
 =head1 AUTHOR
 
