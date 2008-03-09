@@ -79,11 +79,20 @@ to affect to the new object.
 use strict;
 use warnings;
 
-use POSIX qw(WIFEXITED WEXITSTATUS WIFSIGNALED);
+use POSIX qw(
+	WIFEXITED
+	WEXITSTATUS
+	WIFSIGNALED
+	getppid
+	_exit
+);
+
+use Carp;
 
 use base qw(Class::Accessor::Fast);
 __PACKAGE__->mk_accessors(
 	qw(
+		_ppid
 		pid
 		code
 		exit_code
@@ -93,6 +102,64 @@ __PACKAGE__->mk_accessors(
 
 # Version of the module
 our $VERSION = '0.01';
+
+
+=head2 start
+
+Creates and executes a new task, this is simply a small shortcut for starting
+new tasks.
+
+In order to manage tasks easily consider using use the module
+L<Parallel::SubFork> instead.
+
+Parameters:
+	$code: the code reference to execute.
+	@args: the arguments to pass to the code reference (optional).
+
+=cut
+
+sub start {
+	my $class = shift;
+	my ($code, @args) = @_;
+	croak "First parameter must be a code reference" unless ref $code eq 'CODE';
+	
+	my $task = $class->new($code, @args);
+	$task->execute();
+
+	return $task;
+}
+
+
+=head2 new
+
+Creates a new task, this is simply a constructor. The task it not started yet.
+The task is only started through a call to L<execute>.
+
+In order to manage tasks easily consider using use the module
+L<Parallel::SubFork> instead.
+
+Parameters:
+	$code: the code reference to execute.
+	@args: the arguments to pass to the code reference (optional).
+
+=cut
+
+sub new {
+	my $class = shift;
+	my ($code, @args) = @_;
+	croak "First parameter must be a code reference" unless ref $code eq 'CODE';
+	
+	# Create a blessed instance
+	my $self = bless {}, ref($class) || $class;
+	$self->code($code);
+	$self->args(@args);
+	
+	# The current process ID will be the parent
+	$self->_ppid($$);
+	
+	return $self;
+}
+
 
 
 =head2 args
@@ -119,22 +186,48 @@ sub args {
 }
 
 
-
 =head2 execute
 
-Executes the tasks, thus the code reference encapsulated by this task. The code
-reference will be invoked with the arguments passed in the constructor.
+Executes the tasks (the code reference encapsulated by this task.) in a new
+process. The code reference will be invoked with the arguments passed in the
+constructor.
 
-This method will return whatever the code reference returns. This is expected to
-be a value that will be passed to C<exit>.
-
-B<NOTE> This method whould never be invoked directly.
+This method performs the actual fork and returns automatically for the invoker.
+For the child process this is as far the the code will go.
 
 =cut
 
-sub _execute {
+sub execute {
 	my $self = shift;
-	return $self->code->($self->args);
+
+	$self->_ppid($$);
+
+	# Fork a child
+	my $pid = fork();
+	
+	# Check if the fork succeeded
+	if (! defined $pid) {
+		croak "Can't fork because: $!";
+	}
+	elsif ($pid == 0) {
+		## CHILD part
+
+		# Execute the main code
+		my $return = 1;
+		eval {
+			$return = $self->code->($self->args);
+		};
+		if (my $error = $@) {
+			carp "Child executed with errors: ", $error;
+		}
+		
+		# This is as far as the kid gets if the callback hasn't called exit we must doit
+		_exit($return);
+	}
+	else {
+		## PARENT part
+		$self->pid($pid);
+	}
 }
 
 
@@ -142,7 +235,7 @@ sub _execute {
 
 Waits until the process that started this task has finished. This method returns
 the exit status, that is the value passed to the C<exit> system call and not the
-value returned by C<wait>.
+value returned in C<$?> by C<waitpid>.
 
 =cut
 
@@ -151,6 +244,19 @@ sub wait_for {
 
 	my $pid = $self->pid;
 	return unless defined $pid and $pid > 0;
+	if (! (defined $pid and $pid > 0) ) {
+		croak "Task isn't started";
+	}
+	
+	# Only the real parent can wait for the child
+	if ($self->_ppid != $$) {
+		croak "Only the parent process can wait for the task";
+	}
+	
+	# Check if the task was already waited for
+	if (defined $self->status) {
+		return $self->exit_code;
+	}
 	
 	while (1) {
 		
@@ -158,15 +264,15 @@ sub wait_for {
 		my $result = waitpid($pid, 0);
 		if ($result == -1) {
 			# No more processes to wait for, but we didn't find our PID
-			return 1;
+			croak "No more processes to wait PID $pid not found";
 		}
 		elsif ($result == 0) {
-			# Still running, wait some more
+			# Still running, keep waiting
 			next;
 		}
 		elsif ($result != $pid) {
 			# Strange we got another PID than ours
-			return 1;
+			croak "Got a status change for PID $result while waiting for PID $pid";
 		}
 		
 		# Now we got a call to wait, this doesn't mean that the child died! It just
@@ -178,13 +284,17 @@ sub wait_for {
 		if (WIFEXITED($status)) {
 			$self->status($status);
 			$self->exit_code(WEXITSTATUS($status));
+			last;
 		}
 		elsif (WIFSIGNALED($status)) {
 			$self->status($status);
 			# WEXITSTATUS is only defined for WIFEXITED, here we assume an error
 			$self->exit_code(1);
+			last;
 		}
 	}
+	
+	return $self->exit_code;
 }
 
 

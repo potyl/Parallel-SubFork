@@ -60,7 +60,6 @@ use strict;
 use warnings;
 
 use Carp;
-use POSIX qw(_exit);
 
 use Parallel::SubFork::Task;
 
@@ -134,42 +133,9 @@ sub start {
 	$self->_assert_is_dispatcher();
 
 
-	# Prepare the task
-	my $task = Parallel::SubFork::Task->new(
-		{
-			code => $code,
-			args => \@args,
-		}
-	);
-
-
-	# Fork a child
-	my $pid = fork();
-	
-	# Check if the fork succeeded
-	if (! defined $pid) {
-		croak "Can't fork because: $!";
-	}
-	elsif ($pid == 0) {
-		## CHILD part
-
-		# Execute the main code
-		my $return = 1;
-		eval {
-			$return = $task->_execute();
-		};
-		if (my $error = $@) {
-			carp "Child executed with errors: ", $error;
-		}
-		
-		# This is as far as the kid gets if the callback hasn't called exit we must doit
-		_exit($return);
-	}
-	else {
-		## PARENT part
-		$task->pid($pid);
-		push @{ $self->{tasks} }, $task;
-	}
+	# Start the task and remember it
+	my $task = Parallel::SubFork::Task->start($code, @args);
+	push @{ $self->{tasks} }, $task;
 	
 	return $task;
 }
@@ -204,7 +170,12 @@ sub wait_for_all {
 	$self->_assert_is_dispatcher();
 
 	foreach my $task ($self->tasks) {
-		$task->wait_for();
+		eval {
+			$task->wait_for();
+		};
+		if (my $error = $@) {
+			croak $error;
+		}
 	}
 }
 
