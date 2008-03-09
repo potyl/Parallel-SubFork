@@ -24,9 +24,9 @@ Parallel::SubFork::Task - Run Perl functions in forked processes.
 
 =head1 DESCRIPTION
 
-This module provides a simpler way to run arbitrary perl code in a different
+This module provides a simpler way to run arbitrary Perl code in a different
 process. This module consists of a fancy wrapper over the system calls L<fork>
-and L<waitpid>. The idea is to execute any standard perl function in a different
+and L<waitpid>. The idea is to execute any standard Perl function in a different
 process without any of the inconveniences of managing the forks by hand.
 
 =head1 TASK
