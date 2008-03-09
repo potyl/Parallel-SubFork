@@ -371,6 +371,13 @@ sub wait_for {
 # Return a true value
 1;
 
+=head1 NOTES
+
+The API is not yet frozen and could change as the module goes public.
+
+=head1 SEE ALSO
+
+Take a look at L<POE> for asynchronous multitasking and networking.
 
 =head1 AUTHOR
 
