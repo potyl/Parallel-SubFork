@@ -8,12 +8,17 @@ WriteMakefile(
 	VERSION_FROM => 'lib/Parallel/SubFork.pm',
 
 	PREREQ_PM => {
+		# Runtime dependencies
 		Carp                  => 0,
 		POSIX                 => 0,
 		Class::Accessor::Fast => 0,
+
+		# For testig purposes
+		Test::More            => 0,
+		Test::Pod             => 0,
 	},
 	
 
 	ABSTRACT_FROM => 'lib/Parallel/SubFork.pm',
-	AUTHOR        => 'Emmanuel Rodriguez <emmanuel.rodriguez@gmai..com>',
+	AUTHOR        => 'Emmanuel Rodriguez <emmanuel.rodriguez@gmail.com>',
 );
