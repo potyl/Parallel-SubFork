@@ -54,10 +54,18 @@ our $SEMAPHORE_POINT_A = 0;
 our $SEMAPHORE_POINT_B = 1;
 
 
+END {
+	$SEMAPHORE->remove unless defined $SEMAPHORE;
+}
+
 #
 # Creates a new set of semaphores
 #
 sub semaphore_init {
+	
+	# Remove the previous semaphore
+	$SEMAPHORE->remove unless defined $SEMAPHORE;
+	
 	# Create a semaphore holding 2 values
 	$SEMAPHORE = IPC::Semaphore->new(IPC_PRIVATE, 2, S_IRWXU | IPC_CREAT);
 	isa_ok($SEMAPHORE, 'IPC::Semaphore');
