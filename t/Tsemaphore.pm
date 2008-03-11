@@ -55,7 +55,7 @@ our $SEMAPHORE_POINT_B = 1;
 
 
 END {
-	$SEMAPHORE->remove unless defined $SEMAPHORE;
+	$SEMAPHORE->remove if defined $SEMAPHORE;
 }
 
 #
@@ -64,7 +64,7 @@ END {
 sub semaphore_init {
 	
 	# Remove the previous semaphore
-	$SEMAPHORE->remove unless defined $SEMAPHORE;
+	$SEMAPHORE->remove if defined $SEMAPHORE;
 	
 	# Create a semaphore holding 2 values
 	$SEMAPHORE = IPC::Semaphore->new(IPC_PRIVATE, 2, S_IRWXU | IPC_CREAT);
