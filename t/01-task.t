@@ -17,8 +17,8 @@ BEGIN {
 }
 
 my $PID = $$;
-my $SEMAPHORE_POINT_A = 0;
-my $SEMAPHORE_POINT_B = 1;
+#my $SEMAPHORE_POINT_A = 0;
+#my $SEMAPHORE_POINT_B = 1;
 
 exit main();
 

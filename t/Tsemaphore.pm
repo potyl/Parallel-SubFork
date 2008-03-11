@@ -1,10 +1,26 @@
 #!/usr/bin/perl
+package Tsemaphore;
+
 
 use strict;
 use warnings;
 
 use IPC::SysV qw(IPC_PRIVATE S_IRWXU IPC_CREAT);
 use IPC::Semaphore;
+
+use Test::More;
+
+# This is a testing framework so we can do ugly things like exporting symbols by
+# default into the caller's context
+use base 'Exporter';
+our @EXPORT = qw(
+	semaphore_init
+	semaphore_reset
+	semaphore_let_go
+	semaphore_wait_for
+	$SEMAPHORE_POINT_A
+	$SEMAPHORE_POINT_B
+);
 
 
 # Semaphores are used for synchronizing the parent (main code) and the child
@@ -34,6 +50,8 @@ use IPC::Semaphore;
 # Finish                 |
 #
 my $SEMAPHORE;
+our $SEMAPHORE_POINT_A = 0;
+our $SEMAPHORE_POINT_B = 1;
 
 
 #
