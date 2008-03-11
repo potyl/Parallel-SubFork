@@ -3,25 +3,43 @@
 use strict;
 use warnings;
 
-use POSIX qw(WNOHANG pause);
+use POSIX qw(WNOHANG);
+use FindBin;
 
-use Test::More tests => 26;
+# Load the custom utilities for semaphores
+use lib $FindBin::Bin;
+use Tsemaphore;
+
+use Test::More tests => 32;
 
 BEGIN {
 	use_ok('Parallel::SubFork::Task');
 }
 
 my $PID = $$;
+my $SEMAPHORE_POINT_A = 0;
+my $SEMAPHORE_POINT_B = 1;
 
 exit main();
 
 
 sub main {
+
+	# Make sure that there's no hanging, it's better to fail the test due to a
+	# timeout than to leave the test haging there forever.
+	alarm(10);
 	
+	# Test the default values of a task after it's creation, the task is not
+	# started.
 	test_task_creation();	
+
+
+	# Create a semaphore holding 2 values
+	semaphore_init();
 	
 	# Start a tastk through new(), execute()
 	{
+		semaphore_reset();
 		my $task = Parallel::SubFork::Task->new(\&task, 1 .. 10);
 		$task->execute();
 		test_task_run($task);
@@ -29,6 +47,7 @@ sub main {
 
 	# Start a tastk through start()
 	{
+		semaphore_reset();
 		my $task = Parallel::SubFork::Task->start(\&task, 1 .. 10);
 		test_task_run($task);
 	}
@@ -37,7 +56,10 @@ sub main {
 }
 
 
-
+#
+# This test doesn't start a task, it simply creates one and checks for the
+# default values.
+#
 sub test_task_creation {
 	# Create a new task
 	my $task = Parallel::SubFork::Task->new(\&task, 1 .. 10);
@@ -64,19 +86,28 @@ sub test_task_creation {
 }
 
 
+#
+# Execute a task and test that it's running properly
+#
 sub test_task_run {
 	my ($task) = @_;
 
 	isa_ok($task, 'Parallel::SubFork::Task');
 	
+	# Wait for the kid to be ready
+	my $return = semaphore_wait_for($SEMAPHORE_POINT_A);
+
+
 	# Make sure that the task is in a different process
 	ok($$ != $task->pid, "Taks has a different PID");
 	{
 		my $kid = waitpid($task->pid, WNOHANG);
 		is($kid, 0, "Child process still running");
 	}
-	# The task is expected to be in pause, so let's wake it up
-	kill HUP => $task->pid;
+
+	# Tell the kid that we finish checking it, it can now resume
+	$return = semaphore_let_go($SEMAPHORE_POINT_B);
+	ok($return, "Removed resource to semaphore B");
 	
 	# Wait for the task to resume
 	$task->wait_for();
@@ -103,20 +134,27 @@ sub test_task_run {
 }
 
 
+#
+# Tests pases if 57 is returned
+#
 sub task {
-	local $SIG{HUP} = sub {return;};
 	my (@args) = @_;
-	my $return = 57;
 	
+	# Make sure that there's no hanging
+	alarm(10);
 	
-	# This paused is needed because we will actually test that the process is
-	# running
-	pause();
 
-	++$return unless $$ != $PID;
+	# Tell the parent that we are ready
+	semaphore_let_go($SEMAPHORE_POINT_A) or return 10;
+
+	
+	# Wait for the parent to let us go further
+	semaphore_wait_for($SEMAPHORE_POINT_B) or return 11;
+
+	return 12 unless $$ != $PID;
 	
 	my @wanted = qw(1 2 3 4 5 6 7 8 9 10);
-	++$return unless eq_array(\@args, \@wanted);
+	return 13 unless eq_array(\@args, \@wanted);
 	
-	return $return;
+	return 57;
 }
