@@ -18,6 +18,7 @@ WriteMakefile(
 		Test::Pod             => 0,
 		IPC::SysV             => 0,
 		IPC::Semaphore        => 0,
+		FindBin               => 0,
 	},
 	
 
