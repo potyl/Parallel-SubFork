@@ -3,14 +3,23 @@
 use strict;
 use warnings;
 
-use POSIX qw(WNOHANG);
+use Test::More;
 
-use Test::More tests => 79;
 
+# Make sure that the test don't get executed under Windows
 BEGIN {
-	use_ok('Parallel::SubFork');
-	use_ok('Parallel::SubFork::Task');
+
+	if ($^O eq 'MSWin32') {
+		plan skip_all => "Fork is broken under windows.";
+	}
+	else {
+		plan tests => 79;
+		use_ok('Parallel::SubFork');
+		use_ok('Parallel::SubFork::Task');
+	}
+
 }
+
 
 my $PID = $$;
 my $MANAGER;

@@ -5,10 +5,19 @@ use warnings;
 
 use POSIX qw(_exit);
 
-use Test::More tests => 4;
+use Test::More;
 
+# Make sure that the test don't get executed under Windows
 BEGIN {
-	use_ok('Parallel::SubFork');
+
+	if ($^O eq 'MSWin32') {
+		plan skip_all => "Fork is broken under windows.";
+	}
+	else {
+		plan tests => 4;
+		use_ok('Parallel::SubFork');
+	}
+
 }
 
 my $PID = $$;
