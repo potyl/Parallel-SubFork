@@ -4,22 +4,33 @@ use strict;
 use warnings;
 
 use POSIX qw(WNOHANG);
-use FindBin;
 
 # Load the custom utilities for semaphores
+use FindBin;
 use lib $FindBin::Bin;
 use Tsemaphore;
 
-use Test::More tests => 21;
+use Test::More;
 
-
+# Make sure that the test don't get executed under Windows
 BEGIN {
-	use_ok('Parallel::SubFork');
+
+	if ($^O eq 'MSWin32' and !$ENV{USE_IPC}) {
+		plan skip_all => "Fork is broken under windows and IPC::SysV doesn't exit.";
+	}
+	else {
+		plan tests => 21;
+		use_ok('Parallel::SubFork');
+	}
+
 }
+
 
 my $PID = $$;
 
+
 exit main();
+
 
 sub main {
 	
