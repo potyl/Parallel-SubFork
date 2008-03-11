@@ -5,10 +5,6 @@ use warnings;
 
 use POSIX qw(WNOHANG);
 
-# Load the custom utilities for semaphores
-use FindBin;
-use lib $FindBin::Bin;
-use Tsemaphore;
 
 use Test::More;
 
@@ -24,6 +20,11 @@ BEGIN {
 	}
 
 }
+
+# Load the custom utilities for semaphores
+use FindBin;
+use lib $FindBin::Bin;
+use Tsemaphore;
 
 
 my $PID = $$;
