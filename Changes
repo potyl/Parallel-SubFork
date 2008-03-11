@@ -1,5 +1,9 @@
 Revision history for Perl extension Parallel::SubFork.
 
+0.03  Tue Mar 11 21:27:48 CET 
+	- Fixed a race condition in the tests by replacing kill/pause with semaphores
+	- Fork and IPC doesn't work in MSWin32
+
 0.02  Mon Mar  10 07:33:57
 	- Fixed the AUTHOR entry in Makefile.PL
 	- Formatted some white spaces in the LICENSE

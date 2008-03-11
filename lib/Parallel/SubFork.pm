@@ -75,7 +75,7 @@ __PACKAGE__->mk_accessors(
 
 
 # Version of the module
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 
 =head2 new
