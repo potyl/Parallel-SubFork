@@ -21,6 +21,8 @@ exit main();
 
 sub main {
 	
+	alarm(10);
+	
 	# Create a new task
 	$MANAGER = Parallel::SubFork->new();
 	isa_ok($MANAGER, 'Parallel::SubFork');
@@ -115,20 +117,22 @@ sub assert_exception {
 sub task_wait_for_all {
 	my (@args) = @_;
 
-	my $return = 75;
+	alarm(10);
 
-	++$return unless $$ != $PID;
+	return 10 unless $$ != $PID;
 
+	my $fail;
 	eval {
 		$MANAGER->wait_for_all();
-		++$return;
+		$fail = 1;
 	};
 	if (my $error = $@) {
 		my $match = "Process $$ is not the main dispatcher";
-		++$return unless $error =~ /^\Q$match\E/;
+		return 11 unless $error =~ /^\Q$match\E/;
 	}
+	return 12 if $fail;
 
-	return $return;
+	return 75;
 }
 
 
@@ -138,24 +142,26 @@ sub task_wait_for_all {
 sub task_start {
 	my (@args) = @_;
 
-	my $return = 61;
+	alarm(10);
 
-	++$return unless $$ != $PID;
+	return 10 unless $$ != $PID;
 
+	my $fail;
 	eval {
 		$MANAGER->start(
 			sub {
 				die "***** TEST FAILED ($$ <-> $PID) *****";
 			}
 		);
-		++$return;
+		$fail = 1;
 	};
 	if (my $error = $@) {
 		my $match = "Process $$ is not the main dispatcher";
-		++$return unless $error =~ /^\Q$match\E/;
+		return 11 unless $error =~ /^\Q$match\E/;
 	}
+	return 12 if $fail;
 
-	return $return;
+	return 61;
 }
 
 
@@ -165,18 +171,22 @@ sub task_start {
 sub task_wait_for {
 	my (@args) = @_;
 
+	alarm(10);
+
 	my $return = 23;
 
-	++$return unless $$ != $PID;
+	return 10 unless $$ != $PID;
 
+	my $fail;
 	eval {
 		$TASK->wait_for();
-		++$return;
+		$fail = 1;
 	};
 	if (my $error = $@) {
 		my $match = "Only the parent process can wait for the task";
-		++$return unless $error =~ /^\Q$match\E/;
+		return 11 unless $error =~ /^\Q$match\E/;
 	}
+	return 12 if $fail;
 
-	return $return;
+	return 23;
 }
