@@ -2,9 +2,11 @@ Revision history for Perl extension Parallel::SubFork.
 
 0.04  Wed Mar 12 18:37:41 2008 
 	- The tests where missing the file Tsemaphore.pm
+	  [Ticket #34016]
 
 0.03  Tue Mar 11 21:27:48 2008 
 	- Fixed a race condition in the tests by replacing kill/pause with semaphores
+	  [Ticket #33955]
 	- Skipping the test under Windows since fork is broken and unreliable and 
 	  IPC::SysV is missing
 
