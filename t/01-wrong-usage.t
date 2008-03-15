@@ -13,9 +13,10 @@ BEGIN {
 		plan skip_all => "Fork is broken under windows.";
 	}
 	else {
-		plan tests => 79;
+		plan tests => 98;
 		use_ok('Parallel::SubFork');
 		use_ok('Parallel::SubFork::Task');
+		use Parallel::SubFork qw(sub_fork);
 	}
 
 }
@@ -36,23 +37,26 @@ sub main {
 	$MANAGER = Parallel::SubFork->new();
 	isa_ok($MANAGER, 'Parallel::SubFork');
 	
-	# Start a sub task and try to do a wait_for there
+	# Start a sub task and try to execute forbiden code from there
 	my $task_wait_for_all = $MANAGER->start(\&task_wait_for_all);
 	my $task_start = $MANAGER->start(\&task_start);
 	$TASK = $MANAGER->start(sub {return 42;});
 	my $task_wait_for = $MANAGER->start(\&task_wait_for);
+	my $task_sub_fork = sub_fork(\&task_wait_for);
 
 	# Wait for the tasks to resume
 	$MANAGER->wait_for_all();
+	$task_sub_fork->wait_for();
 	
 	is($task_wait_for_all->exit_code, 75, "Child process can't call wait_for_all()");
 	is($task_start->exit_code, 61, "Child process can't call start()");
 	is($TASK->exit_code, 42, "Generic task");
 	is($task_wait_for->exit_code, 23, "Child process can't call start()");
+	is($task_sub_fork->exit_code, 23, "2Child process can't call start()");
 	
 	
 	# Check that we can't reexecute the tasks
-	foreach my $task ($task_wait_for_all, $task_start, $TASK, $task_wait_for) {
+	foreach my $task ($task_wait_for_all, $task_start, $TASK, $task_wait_for, $task_sub_fork) {
 		assert_exception(
 			qr/^Task already exectuted/,
 			sub { $task->execute(); }
@@ -88,6 +92,11 @@ sub main {
 		assert_exception(
 			$regexp_param_code_ref,
 			sub { Parallel::SubFork::Task->start(@args); }
+		);
+
+		assert_exception(
+			$regexp_param_code_ref,
+			sub { sub_fork(@args); }
 		);
 
 		# Start a task that has no code reference
