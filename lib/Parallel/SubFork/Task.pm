@@ -132,7 +132,7 @@ __PACKAGE__->mk_accessors(
 
 
 # Version of the module
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 
 =head2 start
