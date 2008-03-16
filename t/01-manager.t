@@ -3,9 +3,6 @@
 use strict;
 use warnings;
 
-use POSIX qw(WNOHANG);
-
-
 use Test::More;
 
 # Make sure that the test don't get executed under Windows
