@@ -1,5 +1,10 @@
 Revision history for Perl extension Parallel::SubFork.
 
+0.05  Sun Mar 16 09:57:14 2008 
+	- Added the function sub_fork.
+	- Updated the documentation: removed all links to the functions as CPAN can't
+	  link to them properly.
+
 0.04  Wed Mar 12 18:37:41 2008 
 	- The tests where missing the file Tsemaphore.pm
 	  [Ticket #34016]
