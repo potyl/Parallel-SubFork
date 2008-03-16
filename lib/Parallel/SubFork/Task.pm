@@ -25,8 +25,8 @@ Parallel::SubFork::Task - Run Perl functions in forked processes.
 =head1 DESCRIPTION
 
 This module provides a simpler way to run arbitrary Perl code in a different
-process. This module consists of a fancy wrapper over the system calls L<fork>
-and L<waitpid>. The idea is to execute any standard Perl function in a different
+process. This module consists of a fancy wrapper over the system calls C<fork>
+and C<waitpid>. The idea is to execute any standard Perl function in a different
 process without any of the inconveniences of managing the forks by hand.
 
 =head1 TASK
@@ -70,16 +70,16 @@ interpreted as an error.
 
 =head1 EXIT
 
-The subroutine is free to raise any exceptions through L<die> or any similar
+The subroutine is free to raise any exceptions through C<die> or any similar
 mechanism. If an error is caught by the framework it will be interpreted as an
 error and an appropriate exit value will be used.
 
 If the subroutine needs to resume it's execution through a the system call
-L<exit> then consider instead using C<_exit> as defined in the module L<POSIX>.
-This is because L<exit> not only terminates the current process but it performs
+C<exit> then consider instead using C<_exit> as defined in the module L<POSIX>.
+This is because C<exit> not only terminates the current process but it performs
 some cleanup such as calling the functions registered with C<atexit> and flush
 all stdio streams before finishing the process. Normally, only the main process
-should call L<exit>, in the case of a fork the children should finish their execution through C<POSIX::_exit>.
+should call C<exit>, in the case of a fork the children should finish their execution through C<POSIX::_exit>.
 
 =head1 PROCESS WAIT
 
@@ -89,12 +89,12 @@ The easiest way is to register a signal handler for C<CHLD> signal. This has the
 advantage of receiving the child notifications as they happen, the disadvantage
 is that there's no way to control for which children the notifications will
 happen. This is quite inconvenient because a lot of the nice built-in functions
-and operators in Perl such as C<`ls`>, L<system> and even L<open> (when used in
+and operators in Perl such as C<`ls`>, C<system> and even C<open> (when used in
 conjunction with a C<|>) use child processes for their tasks and this could
 potentially interfere with such utilities.
 
 Another alternative is to wait for all processes launched but this can also
-interfere with other processed launched manually through L<fork>.
+interfere with other processed launched manually through C<fork>.
 
 Finally, the safest way is to wait explicitly B<only> for the processes that we
 know to have started and nothing else. This there will be no interference with
@@ -209,7 +209,7 @@ The PID of the process executing the subroutine, the child's PID.
 
 =head2 exit_code
 
-The exit code of the task, this is the value returned by L<exit>, 
+The exit code of the task, this is the value returned by C<exit>, 
 C<POSIX::_exit> or C<return>.
 
 =head2 status
@@ -304,7 +304,7 @@ sub execute {
 Waits until the process running the task (the code reference) has finished.
 
 The exit status of the process can be inspected through the accessor 
-L</"exit_code"> and the actual status, the value returned in C<$?> by L<waitpid>
+L</"exit_code"> and the actual status, the value returned in C<$?> by C<waitpid>
 can be accessed through the accessor L</"status">.
 
 =cut

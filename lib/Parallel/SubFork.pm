@@ -35,7 +35,7 @@ or more easily:
 =head1 DESCRIPTION
 
 This module provides a simple wrapper over the module L<Parallel::SubFork::Task>
-which in turns simplifies the usage of the system calls L<fork> and L<waitpid>.
+which in turns simplifies the usage of the system calls C<fork> and C<waitpid>.
 The idea is to isolate the tasks to be execute in functions or closures and to
 execute them in a separated process in order to take advantage of
 parallelization.
