@@ -471,7 +471,11 @@ C<kill>. It takes the kind of signal that the built-in kill function.
 
 B<NOTE>: Calling kill doesn't warranty that the task will die. Most signals can
 be caught by the process and may not kill it. In order to be sure that the
-process is killed it is advised to call L</wait_for>.
+process is killed it is advised to call L</wait_for>. Even if the signal kills
+the process L</wait_for> has to be called otherwise the task's process will be
+flagged as zombie process (see L<http://en.wikipedia.org/wiki/Zombie_process>).
+
+The following code snippet shows how to properly kill a task:
 
 	my $task = Parallel::SubFork::Task->start(\&job);
 	if ($task->wait_for(2)) {
@@ -500,7 +504,7 @@ The same value as Perl's C<kill>.
 sub kill {
 	my $self = shift;
 	my ($signal) = @_;
-	kill $signal $self->pid;
+	kill $signal, $self->pid;
 }
 
 
