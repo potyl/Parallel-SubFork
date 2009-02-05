@@ -17,6 +17,13 @@ Parallel::SubFork::Task - Run Perl functions in forked processes.
 	$task2->execute();
 	$task2->wait_for();
 	
+	# Wait with a live progress
+	local $| = 1; # Force print to flush the output
+	my $task3 = Parallel::SubFork::Task->new(\&job, @args);
+	while ($task3->wait_for(0.5)) {
+		print ".";	
+	}
+	
 	# Access any of the properties
 	printf "PID of task was %s\n", $task->pid;
 	printf "Args of task where %s\n", join(", ", $task->args);
@@ -83,7 +90,7 @@ should call C<exit>, in the case of a fork the children should finish their exec
 
 =head1 PROCESS WAIT
 
-Waiting for process to finish can be problematic. There are multiple ways for waiting for processes to resume. Each having it's advantages and disadvantages.
+Waiting for process to finish can be problematic as there are multiple ways for waiting for processes to resume each having it's advantages and disadvantages.
 
 The easiest way is to register a signal handler for C<CHLD> signal. This has the
 advantage of receiving the child notifications as they happen, the disadvantage
@@ -132,7 +139,20 @@ __PACKAGE__->mk_accessors(
 
 
 # Version of the module
-our $VERSION = '0.05';
+our $VERSION = '0.06';
+
+
+# Check if it's possible to use a high precision alarm
+my $HIRES; # NOTE the initialization must be done in the BEGIN block otherwise
+           #      the default value will override whatever was set in the BEGIN
+					 #      block.
+BEGIN {
+	$HIRES = 0; # Assume that there's no HiRes
+	eval {
+		require Time::HiRes;
+		$HIRES = 1;
+	};
+}
 
 
 =head2 start
@@ -174,8 +194,17 @@ L<Parallel::SubFork> instead.
 
 Parameters:
 
-	$code: the code reference to execute.
-	@args: the arguments to pass to the code reference (optional).
+=over
+
+=item $code
+
+The code reference to execute.
+
+=item @args (optional)
+
+The arguments to pass to the code reference.
+
+=back
 
 =cut
 
@@ -191,6 +220,7 @@ sub new {
 	
 	return $self;
 }
+
 
 =head2 code
 
@@ -216,7 +246,6 @@ C<POSIX::_exit> or C<return>.
 
 The exit code returned to the parent process as described by C<wait>. The status
 code can be inspected through the L<"POSIX/WAIT"> macros .
-
 
 =head2 args
 
@@ -289,7 +318,7 @@ sub execute {
 			carp "Child executed with errors: ", $error;
 		}
 		
-		# This is as far as the kid gets if the callback hasn't called exit we must doit
+		# This is as far as the kid gets if the callback hasn't called exit we do it
 		_exit($return);
 	}
 	else {
@@ -301,16 +330,52 @@ sub execute {
 
 =head2 wait_for
 
-Waits until the process running the task (the code reference) has finished.
+Waits until the process running the task (the code reference) has finished. By
+default this method waits forever until task resumes either naturally or due to
+an error.
+
+If a parameter is passed then it is assumed to be the number of seconds to wait.
+Once the timeout has expired the method will return with a true value. This is
+the only condition under which the method will return with a true value.
+
+If the module L<Time::HiRes> is available then timeout can be in fractions (ex:
+0.5 for half a second) otherwise full integers have to be provided. If not Perl
+will round the results during the conversion to int.
+
+The timeout is implemented through the C<alarm> system call which means that if
+a previous alarm was set it will be reset. Furthermore, if a timeout between 0 and 1 second is provided as a fraction and that C<Time::Hires> is not available
+Perl will round the value to 0 which will imply that C<alarm(0)> will be called.
+This will have for effect to reset the previous alarm and to wait until the task
+resumes without a timeout.
 
 The exit status of the process can be inspected through the accessor 
 L</"exit_code"> and the actual status, the value returned in C<$?> by C<waitpid>
 can be accessed through the accessor L</"status">.
 
+Parameters:
+
+=over
+
+=item $timeout (optional)
+
+The number of seconds to wait until the method returns due to a timeout. If
+undef then the method doesn't apply a timeout and waits until the task has
+resumed.
+
+=back
+
+Returns:
+
+If the method was invoked without a timeout then a false value will always be
+returned, no matter the outcome of the task. If a timeout was provided then the
+method will return a true value only the timeout has been reached otherwise a
+false value will be returned.
+
 =cut
 
 sub wait_for {
 	my $self = shift;
+	my ($timeout) = @_;
 
 	my $pid = $self->pid;
 	return unless defined $pid and $pid > 0;
@@ -331,7 +396,38 @@ sub wait_for {
 	while (1) {
 		
 		# Wait for the specific PID
-		my $result = waitpid($pid, 0);
+		my $result;
+		
+		if (defined $timeout) {
+			# Wait with a timeout
+			eval {
+				local $SIG{ALRM} = sub {die "ALARM\n";};
+				if ($HIRES) {
+					Time::HiRes::alarm($timeout);
+				}
+				else {
+					alarm($timeout);
+				}
+				$result = waitpid($pid, 0);
+				# Reset the alarm, no need for precision here
+				alarm(0);
+			};
+			if (my $error = $@) {
+				if ($error eq "ALARM\n") {
+					# Got an alarm timeout, this is fine we return and let the caller
+					# decide what's best.
+					return 1;
+				}
+				
+				# This is not expected
+				croak $error;
+			}
+		}
+		else {
+			# Wait until there's a response
+			$result = waitpid($pid, 0);
+		}
+		
 		if ($result == -1) {
 			# No more processes to wait for, but we didn't find our PID
 			croak "No more processes to wait PID $pid not found";
@@ -347,7 +443,7 @@ sub wait_for {
 		
 		# Now we got a call to wait, this doesn't mean that the child died! It just
 		# means that the child got a state change (the child terminated; the child
-		# was stopped by a signal;  or  the  child was  resumed  by a signal). Here
+		# was stopped by a signal; or  the  child was  resumed  by a signal). Here
 		# we must check if the process finished properly otherwise we must continue
 		# waiting for the end of the process.
 		my $status = $?;
