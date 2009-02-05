@@ -83,7 +83,7 @@ __PACKAGE__->mk_accessors(
 
 
 # Version of the module
-our $VERSION = '0.05';
+our $VERSION = '0.06_01';
 
 
 =head1 FUNCTIONS
