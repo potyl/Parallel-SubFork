@@ -1,5 +1,19 @@
 #!/usr/bin/perl
 
+=head1 NAME
+
+simple.pl - Start a long task in parallel.
+
+=head1 SYNOPSIS
+
+perl simple.pl
+
+=head1 DESCRIPTION
+
+Shows how to start a task in parallel.
+
+=cut
+
 use strict;
 use warnings;
 
