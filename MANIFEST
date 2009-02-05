@@ -15,4 +15,5 @@ lib/Parallel/SubFork.pm
 lib/Parallel/SubFork/Task.pm
 examples/simple.pl
 examples/progress.pl
+examples/impatient.pl
 commands
