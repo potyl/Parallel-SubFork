@@ -10,6 +10,7 @@ t/01-manager.t
 t/01-sub-fork.t
 t/01-task.t
 t/01-wrong-usage.t
+t/02-task-timeout.t
 t/Tsemaphore.pm
 lib/Parallel/SubFork.pm
 lib/Parallel/SubFork/Task.pm
