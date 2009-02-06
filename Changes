@@ -1,5 +1,8 @@
 Revision history for Perl extension Parallel::SubFork.
 
+0.06_01  Fri Feb  6 19:56:21 CET 2009 
+	- The method wait_for() can accept a timeout.
+
 0.05  Sun Mar 16 09:57:14 2008 
 	- Added the function sub_fork.
 	- Updated the documentation: removed all links to the functions as CPAN can't
