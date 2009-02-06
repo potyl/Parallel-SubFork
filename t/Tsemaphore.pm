@@ -138,10 +138,11 @@ sub semaphore_task {
 
 
 #
-# Execute a task and test that it's running properly
+# Execute a task and test that it's running properly. If a callback is passed
+# then it will be invoked while the task is running.
 #
 sub test_semaphore_task_run {
-	my ($task) = @_;
+	my ($task, $callback) = @_;
 
 	# Make sure that there's no hanging, it's better to fail the test due to a
 	# timeout than to leave the test haging there forever.
@@ -160,6 +161,13 @@ sub test_semaphore_task_run {
 		my $kid = waitpid($task->pid, WNOHANG);
 		is($kid, 0, "Child process still running");
 	}
+	
+	
+	# If the user provided a callback invoke it.
+	if (ref $callback eq 'CODE') {
+		$callback->($task);
+	}
+	
 
 	# Tell the kid that we finish checking it, it can now resume
 	$return = semaphore_let_go($SEMAPHORE_POINT_B);
