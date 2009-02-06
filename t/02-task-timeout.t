@@ -34,7 +34,7 @@ sub main {
 	alarm(10);
 	
 	# Create a semaphore holding 2 values
-	semaphore_init();
+	semaphore_init(28) or return 1;
 	
 	# Start a tastk through new(), execute()
 	{

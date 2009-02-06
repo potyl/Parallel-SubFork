@@ -33,7 +33,7 @@ exit main();
 sub main {
 	
 	# Create a semaphore holding 2 values
-	semaphore_init();
+	semaphore_init(20) or return 1;
 	
 	
 	# Create a new task

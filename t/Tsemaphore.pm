@@ -63,18 +63,29 @@ END {
 }
 
 #
-# Creates a new set of semaphores
+# Creates a new set of semaphores. If the semaphores can't be created it returns
+# false.
 #
 sub semaphore_init {
+	my ($skip_count) = @_;
+	die "Usage count" unless @_;
 	
 	# Remove the previous semaphore
 	$SEMAPHORE->remove if defined $SEMAPHORE;
 	
 	# Create a semaphore holding 2 values
 	$SEMAPHORE = IPC::Semaphore->new(IPC_PRIVATE, 2, S_IRWXU | IPC_CREAT);
+	if (! defined $SEMAPHORE) {
+		# Bad implementation of IPC::Semaphore
+		SKIP: {
+			skip "Can't create a semaphore", $skip_count;
+		}
+		return 0;
+	}
 	isa_ok($SEMAPHORE, 'IPC::Semaphore');
 	
 	semaphore_reset();
+	return 1;
 }
 
 
