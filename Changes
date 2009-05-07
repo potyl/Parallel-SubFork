@@ -1,5 +1,8 @@
 Revision history for Perl extension Parallel::SubFork.
 
+0.06 Thu May  7 07:42:05 CEST 2009
+	- New release with all the changes from the 0.06_XX releases.
+
 0.06_02  Fri Feb  6 22:34:52 CET 2009 
 	- Added unit tests for wait_for($timeout).
 	- The unit tests are skipped if the semaphore can't be created.
