@@ -3,6 +3,6 @@
 ^blib/
 ^MANIFEST[.]SKIP$
 ^pm_to_blib$
-^Makefile$
+^Makefile(\.old)?$
 ^Parallel-SubFork-
 ^tmp/

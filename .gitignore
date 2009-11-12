@@ -1,4 +1,5 @@
 Makefile
+Makefile.old
 Parallel-SubFork-*.tar.gz
 blib
 pm_to_blib
