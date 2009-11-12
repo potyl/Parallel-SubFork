@@ -68,7 +68,7 @@ END {
 #
 sub semaphore_init {
 	my ($skip_count) = @_;
-	die "Usage count" unless @_;
+	die "Usage: semaphore_init(skip_count)" unless @_;
 	
 	# Remove the previous semaphore
 	$SEMAPHORE->remove if defined $SEMAPHORE;
