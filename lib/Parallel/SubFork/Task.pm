@@ -343,7 +343,8 @@ If the module L<Time::HiRes> is available then timeout can be in fractions (ex:
 will round the results during the conversion to int.
 
 The timeout is implemented through the C<alarm> system call which means that if
-a previous alarm was set it will be reset. Furthermore, if a timeout between 0 and 1 second is provided as a fraction and that C<Time::Hires> is not available
+a previous alarm was set it will be reset. Furthermore, if a timeout between 0
+and 1 second is provided as a fraction and that C<Time::Hires> is not available
 Perl will round the value to 0 which will imply that C<alarm(0)> will be called.
 This will have for effect to reset the previous alarm and to wait until the task
 resumes without a timeout.
