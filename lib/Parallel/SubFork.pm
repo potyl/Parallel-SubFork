@@ -95,7 +95,11 @@ The module provides the following functions:
 
 =head2 sub_fork
 
-This function provides a simple way for creating and launching tasks.
+This function provides a simple way for creating and launching tasks. It is
+declared using a prototype which allows it to be called as:
+
+	my $task = sub_fork { print "$$ > $_\n" for 1 .. 10 };
+	$task->wait_for();
 
 Parameters:
 
@@ -113,7 +117,7 @@ The arguments to pass to the code reference.
 
 =cut
 
-sub sub_fork {
+sub sub_fork (&;@) {
 
 	# Arguments
 	my ($code, @args) = @_;
