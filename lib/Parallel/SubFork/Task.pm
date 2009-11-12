@@ -86,11 +86,13 @@ C<exit> then consider instead using C<_exit> as defined in the module L<POSIX>.
 This is because C<exit> not only terminates the current process but it performs
 some cleanup such as calling the functions registered with C<atexit> and flush
 all stdio streams before finishing the process. Normally, only the main process
-should call C<exit>, in the case of a fork the children should finish their execution through C<POSIX::_exit>.
+should call C<exit>, in the case of a fork the children should finish their
+execution through C<POSIX::_exit>.
 
 =head1 PROCESS WAIT
 
-Waiting for process to finish can be problematic as there are multiple ways for waiting for processes to resume each having it's advantages and disadvantages.
+Waiting for process to finish can be problematic as there are multiple ways for
+waiting for processes to resume each having it's advantages and disadvantages.
 
 The easiest way is to register a signal handler for C<CHLD> signal. This has the
 advantage of receiving the child notifications as they happen, the disadvantage
