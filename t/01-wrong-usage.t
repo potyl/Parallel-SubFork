@@ -13,7 +13,7 @@ BEGIN {
 		plan skip_all => "Fork is broken under windows.";
 	}
 	else {
-		plan tests => 98;
+		plan tests => 83;
 		use_ok('Parallel::SubFork');
 		use_ok('Parallel::SubFork::Task');
 		use Parallel::SubFork qw(sub_fork);
@@ -92,11 +92,6 @@ sub main {
 		assert_exception(
 			$regexp_param_code_ref,
 			sub { Parallel::SubFork::Task->start(@args); }
-		);
-
-		assert_exception(
-			$regexp_param_code_ref,
-			sub { sub_fork(@args); }
 		);
 
 		# Start a task that has no code reference
