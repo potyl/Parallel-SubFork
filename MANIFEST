@@ -2,9 +2,6 @@ Changes
 Makefile.PL
 MANIFEST
 README
-t/00-distribution.t
-t/00-pod-coverage.t
-t/00-signature.t
 t/01-exit.t
 t/01-manager.t
 t/01-sub-fork.t
