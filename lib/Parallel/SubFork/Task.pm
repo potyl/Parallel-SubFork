@@ -142,7 +142,7 @@ __PACKAGE__->mk_accessors(
 
 
 # Version of the module
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 
 # Check if it's possible to use a high precision alarm
