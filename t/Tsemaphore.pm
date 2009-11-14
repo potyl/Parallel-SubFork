@@ -121,9 +121,9 @@ sub semaphore_wait_for {
 
 
 #
-# Special task that's meant to be run in a separate process. The return value is 
-# used to tell if the task run successfully. If this task return 57 any other
-# value must be regarded as a failure.
+# Special task that's meant to be run in a separate process. The return value is
+# used to tell if the task run successfully. If this task returns 57 then it has
+# succeed any other value must be regarded as a failure.
 #
 sub semaphore_task {
 	my (@args) = @_;
