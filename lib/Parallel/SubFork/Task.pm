@@ -120,6 +120,7 @@ use strict;
 use warnings;
 
 use POSIX qw(
+	WNOHANG
 	WIFEXITED
 	WEXITSTATUS
 	WIFSIGNALED
@@ -371,8 +372,8 @@ Returns:
 
 If the method was invoked without a timeout then a false value will always be
 returned, no matter the outcome of the task. If a timeout was provided then the
-method will return a true value only the timeout has been reached otherwise a
-false value will be returned.
+method will return a true value only when the timeout has been reached otherwise
+a false value will be returned.
 
 =cut
 
@@ -396,47 +397,49 @@ sub wait_for {
 		return;
 	}
 	
+	my $timemout_done = 0; # Use to track if the waitpid was called enough times when passed a timeout
+	my $flags = defined $timeout ? WNOHANG : 0;
 	while (1) {
 		
 		# Wait for the specific PID
-		my $result;
-		
-		if (defined $timeout) {
-			# Wait with a timeout
-			eval {
-				local $SIG{ALRM} = sub {die "ALARM\n";};
-				if ($HIRES) {
-					Time::HiRes::alarm($timeout);
-				}
-				else {
-					alarm($timeout);
-				}
-				$result = waitpid($pid, 0);
-				# Reset the alarm, no need for precision here
-				alarm(0);
-			};
-			if (my $error = $@) {
-				if ($error eq "ALARM\n") {
-					# Got an alarm timeout, this is fine we return and let the caller
-					# decide what's best.
-					return 1;
-				}
-				
-				# This is not expected
-				croak $error;
-			}
-		}
-		else {
-			# Wait until there's a response
-			$result = waitpid($pid, 0);
-		}
-		
+		my $result = waitpid($pid, $flags);
+
 		if ($result == -1) {
 			# No more processes to wait for, but we didn't find our PID
 			croak "No more processes to wait PID $pid not found";
 		}
 		elsif ($result == 0) {
-			# Still running, keep waiting
+			# The process is still running
+
+			# If the method was called with a timeout we will retry waitpid once more;
+			# remember that it is invoked with no hang which means that the call will
+			# return instantaneously.
+			if (defined $timeout) {
+
+				# In the case of a timeout we invoke this code once
+				$timemout_done++ or return 1;
+
+				# NOTE: The timeout is implemented with a sleep instead of an alarm
+				#       because some versions/combinations of perl and Time::HiRes cause
+				#       Time::HiRes::alarm() to fail to interrupt system calls. For more
+				#       information about this see Ticket #51465:
+				#          https://rt.cpan.org/Ticket/Display.html?id=51465
+
+				# Sleep and alarms don't mix well together, so we stop the current alarm
+				# and restore it later on.
+				my $alarm = alarm(0);
+				if ($HIRES) {
+					Time::HiRes::sleep($timeout);
+				}
+				else {
+					sleep($timeout);
+				}
+
+				# If an alarm was set, restore it
+				alarm($alarm) if $alarm;
+			}
+
+			# Continue waiting as the process is till waiting
 			next;
 		}
 		elsif ($result != $pid) {
@@ -444,11 +447,11 @@ sub wait_for {
 			croak "Got a status change for PID $result while waiting for PID $pid";
 		}
 		
-		# Now we got a call to wait, this doesn't mean that the child died! It just
-		# means that the child got a state change (the child terminated; the child
-		# was stopped by a signal; or  the  child was  resumed  by a signal). Here
-		# we must check if the process finished properly otherwise we must continue
-		# waiting for the end of the process.
+		# Now we got a decent answer from waitpid, this doesn't mean that the child
+		# died! It just means that the child got a state change (the child
+		# terminated; the child was stopped by a signal; or  the  child was  resumed
+		# by a signal). Here we must check if the process finished properly
+		# otherwise we must continue waiting for the end of the process.
 		my $status = $?;
 		if (WIFEXITED($status)) {
 			$self->status($status);
