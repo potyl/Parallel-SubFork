@@ -1,5 +1,8 @@
 Revision history for Perl extension Parallel::SubFork.
 
+0.09 Sat Jan 16 16:37:15 CET 2010
+	- Documentation update.
+
 0.08 Sat Nov 14 13:02:05 CET 2009
 	- Implement the timeout in $task->wait_for through sleep instead of alarm.
 	  [Ticket #51465]
