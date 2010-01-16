@@ -345,12 +345,12 @@ If the module L<Time::HiRes> is available then timeout can be in fractions (ex:
 0.5 for half a second) otherwise full integers have to be provided. If not Perl
 will round the results during the conversion to int.
 
-The timeout is implemented through the C<alarm> system call which means that if
-a previous alarm was set it will be reset. Furthermore, if a timeout between 0
-and 1 second is provided as a fraction and that C<Time::Hires> is not available
-Perl will round the value to 0 which will imply that C<alarm(0)> will be called.
-This will have for effect to reset the previous alarm and to wait until the task
-resumes without a timeout.
+The timeout is implemented through C<sleep> and has all the caveats of sleep,
+see perdoc -f sleep for more details. Remember that sleep could take a second
+less than requested (sleep 1 could do no sleep at all) and mixin calls to sleep
+and alarm is at your own risks as sleep is sometimes implemented through alarm.
+Furthermore, if a timeout between 0 and 1 second is provided as a fraction and
+that C<Time::Hires> is not available Perl will round the value to 0.
 
 The exit status of the process can be inspected through the accessor 
 L</"exit_code"> and the actual status, the value returned in C<$?> by C<waitpid>
