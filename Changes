@@ -1,5 +1,9 @@
 Revision history for Perl extension Parallel::SubFork.
 
+0.10 Fri Jan 29 16:25:41 CET 2010
+	- Bug fix: wait_for($timeout) returned without waiting.
+	  [Reported by Michael J Vanole throgh email]
+
 0.09 Sat Jan 16 16:37:15 CET 2010
 	- Documentation update.
 
