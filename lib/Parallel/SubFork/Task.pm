@@ -417,7 +417,7 @@ sub wait_for {
 			if (defined $timeout) {
 
 				# In the case of a timeout we invoke this code once
-				$timemout_done++ or return 1;
+				return 1 if $timemout_done++;
 
 				# NOTE: The timeout is implemented with a sleep instead of an alarm
 				#       because some versions/combinations of perl and Time::HiRes cause
