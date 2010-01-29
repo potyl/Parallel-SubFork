@@ -382,9 +382,8 @@ sub wait_for {
 	my ($timeout) = @_;
 
 	my $pid = $self->pid;
-	return unless defined $pid and $pid > 0;
 	if (! (defined $pid and $pid > 0) ) {
-		croak "Task isn't started";
+		croak "Task isn't started yet";
 	}
 	
 	# Only the real parent can wait for the child
