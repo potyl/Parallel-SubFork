@@ -316,10 +316,11 @@ sub execute {
 		my $return = 1;
 		eval {
 			$return = $code->($self->args);
-		};
-		if (my $error = $@) {
+			1;
+		} or do {
+			my $error = $@;
 			carp "Child executed with errors: ", $error;
-		}
+		};
 		
 		# This is as far as the kid gets if the callback hasn't called exit we do it
 		_exit($return);

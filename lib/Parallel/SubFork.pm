@@ -125,10 +125,10 @@ sub sub_fork (&;@) {
 	my $task;
 	eval {
 		$task = Parallel::SubFork::Task->start($code, @args);
+		1;
+	} or do {
+		croak $@;
 	};
-	if (my $error = $@) {
-		croak $error;
-	}
 	return $task;
 }
 
@@ -213,10 +213,10 @@ sub start {
 	my $task;
 	eval {
 		$task = Parallel::SubFork::Task->start($code, @args);
+		1;
+	} or do {
+		croak $@;
 	};
-	if (my $error = $@) {
-		croak $error;
-	}
 	push @{ $self->{tasks} }, $task;
 	
 	return $task;
@@ -241,10 +241,10 @@ sub wait_for_all {
 	foreach my $task ($self->tasks) {
 		eval {
 			$task->wait_for();
+			1;
+		} or do {
+			croak $@;
 		};
-		if (my $error = $@) {
-			croak $error;
-		}
 	}
 }
 
